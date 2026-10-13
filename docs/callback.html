@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Autenticación - TikTok App Escolar</title>
+    <style>
+      body {
+        background: #101010;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      .container {
+        padding: 24px;
+        max-width: 440px;
+      }
+
+      h1 {
+        color: #fe2c55;
+      }
+      p {
+        line-height: 1.6;
+        color: #cccccc;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>TikTok App Escolar</h1>
+      <p id="mensaje">Procesando respuesta de TikTok...</p>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get("error");
+      const code = params.get("code");
+      const mensaje = document.getElementById("mensaje");
+
+      if (error) {
+        mensaje.textContent = "La autorización fue cancelada o rechazada.";
+      } else if (code) {
+        mensaje.textContent =
+          "TikTok devolvió una autorización. " +
+          "La integración del inicio de sesión está pendiente.";
+      } else {
+        mensaje.textContent = "Página de retorno de autenticación.";
+      }
+
+      // No mostramos ni almacenamos el código de autorización.
+      // La validación de state y el intercambio del código
+      // deberán implementarse mediante un flujo OAuth seguro.
+    </script>
+  </body>
+</html>
