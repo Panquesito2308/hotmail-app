@@ -1,10 +1,10 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 
-export type PerfilRuta = "/perfil-francisco" | "/perfil-adrian";
+export type PerfilRuta = "/perfil-francisco" | "/perfil-luis";
 
 export function abrirPerfil(perfil: PerfilRuta, autenticado: boolean) {
   if (autenticado) {
-    router.push(perfil);
+    router.push(perfil as Href);
     return;
   }
 
