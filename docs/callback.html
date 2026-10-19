@@ -1,212 +1,220 @@
+
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#03101A" />
-    <title>Autenticación | BEYOND / 26</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#03101A" />
+  <meta name="referrer" content="no-referrer" />
 
-    <style>
-      * {
-        box-sizing: border-box;
+  <title>Autenticación | BEYOND / 26</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #03101a;
+      color: #f1f7fc;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .background {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(
+        ellipse at 50% 20%,
+        #19435c 0%,
+        #09263a 38%,
+        #03101a 75%
+      );
+    }
+
+    .veil {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(1, 12, 24, 0.2),
+        rgba(1, 12, 24, 0.75)
+      );
+    }
+
+    .page {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 38px clamp(24px, 6vw, 80px);
+    }
+
+    .brand,
+    .footer,
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 700px;
+      padding: 65px 0;
+      animation: appear 0.9s ease both;
+    }
+
+    .eyebrow {
+      color: #82b5d4;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(48px, 10vw, 92px);
+      line-height: 1.02;
+      letter-spacing: -3px;
+      font-weight: 900;
+    }
+
+    h1 span {
+      color: #82b5d4;
+    }
+
+    .line {
+      height: 2px;
+      width: 58px;
+      margin: 30px 0 24px;
+      background: #d7ecf8;
+    }
+
+    p {
+      color: #d3e5ef;
+      font-size: 16px;
+      line-height: 1.7;
+      max-width: 480px;
+    }
+
+    .detail {
+      color: #afc4d2;
+      font-size: 13px;
+      margin-top: 20px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      color: #b4c9d9;
+      font-size: 9px;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
       }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: #03101a;
-        color: #f1f7fc;
-        font-family: Arial, Helvetica, sans-serif;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      .background {
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(
-          ellipse at 50% 20%,
-          #19435c 0%,
-          #09263a 38%,
-          #03101a 75%
-        );
-      }
-
-      .veil {
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(
-          180deg,
-          rgba(1, 12, 24, 0.2),
-          rgba(1, 12, 24, 0.75)
-        );
-      }
-
-      .page {
-        position: relative;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 38px clamp(24px, 6vw, 80px);
-      }
-
-      .brand,
-      .footer,
-      .eyebrow {
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 2px;
-      }
-
-      .brand {
-        color: #f1f7fc;
-      }
-
+    @media (prefers-reduced-motion: reduce) {
       main {
-        width: 100%;
-        max-width: 700px;
-        padding: 65px 0;
-        animation: appear 0.9s ease both;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="background" aria-hidden="true"></div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <div class="page">
+    <header class="brand">
+      BEYOND / 26
+    </header>
+
+    <main>
+      <div class="eyebrow">
+        AUTHENTICATION / TIKTOK
+      </div>
+
+      <h1>
+        BEYOND<br />
+        THE <span>LOGIN.</span>
+      </h1>
+
+      <div class="line"></div>
+
+      <p
+        id="mensaje"
+        role="status"
+        aria-live="polite"
+      >
+        Esperando la respuesta de TikTok...
+      </p>
+
+      <p id="detalle" class="detail"></p>
+    </main>
+
+    <footer class="footer">
+      <span>DESIGN × TECHNOLOGY × CREATIVITY</span>
+      <span>© 2026</span>
+    </footer>
+  </div>
+
+  <script>
+    (async function () {
+      const API_URL =
+        "https://hotmail-app-production.up.railway.app";
+
+      const params = new URLSearchParams(
+        window.location.search
+      );
+
+      const code = params.get("code");
+      const state = params.get("state");
+      const error = params.get("error");
+
+      const mensaje =
+        document.getElementById("mensaje");
+
+      const detalle =
+        document.getElementById("detalle");
+
+      // Eliminar los parámetros de la barra de dirección.
+      if (window.location.search) {
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname
+        );
       }
 
-      .eyebrow {
-        color: #82b5d4;
-        margin-bottom: 25px;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: clamp(48px, 10vw, 92px);
-        line-height: 1.02;
-        letter-spacing: -3px;
-        font-weight: 900;
-      }
-
-      h1 span {
-        color: #82b5d4;
-      }
-
-      .line {
-        height: 2px;
-        width: 58px;
-        margin: 30px 0 24px;
-        background: #d7ecf8;
-      }
-
-      p {
-        color: #d3e5ef;
-        font-size: 16px;
-        line-height: 1.7;
-        max-width: 480px;
-      }
-
-      .detail {
-        color: #afc4d2;
-        font-size: 13px;
-        margin-top: 20px;
-      }
-
-      .footer {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-        color: #b4c9d9;
-        font-size: 9px;
-      }
-
-      @keyframes appear {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        main {
-          animation: none;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="background" aria-hidden="true"></div>
-    <div class="veil" aria-hidden="true"></div>
-
-    <div class="page">
-      <header class="brand">BEYOND / 26</header>
-
-      <main>
-        <div class="eyebrow">AUTHENTICATION / TIKTOK</div>
-
-        <h1>
-          BEYOND<br />
-          THE <span>LOGIN.</span>
-        </h1>
-
-        <div class="line"></div>
-
-        <p id="mensaje" role="status" aria-live="polite">
-          Esperando la respuesta de TikTok...
-        </p>
-
-        <p id="detalle" class="detail"></p>
-      </main>
-
-      <footer class="footer">
-        <span>DESIGN × TECHNOLOGY × CREATIVITY</span>
-        <span>© 2026</span>
-      </footer>
-    </div>
-
-    <script>
-      (async function () {
-        const API_URL = "https://hotmail-app-production.up.railway.app";
-
-        const mensaje = document.getElementById("mensaje");
-        const detalle = document.getElementById("detalle");
-
-        const params = new URLSearchParams(window.location.search);
-
-        const code = params.get("code");
-        const state = params.get("state");
-        const error = params.get("error");
-
-        // Eliminar los parámetros de la barra de direcciones.
-        // No guardar códigos ni tokens en el navegador.
-        if (window.location.search || window.location.hash) {
-          window.history.replaceState(null, "", window.location.pathname);
-        }
-
-        if (error) {
-          mensaje.textContent =
-            "La autorización fue cancelada o TikTok la rechazó.";
-
-          detalle.textContent =
-            "Regresa a la aplicación e inténtalo nuevamente.";
-
-          return;
-        }
-
-        if (!code || !state) {
-          mensaje.textContent =
-            "Esta es la página de retorno de autenticación.";
-
-          detalle.textContent = "Inicia el proceso desde la aplicación.";
-
-          return;
-        }
-
-        mensaje.textContent = "Verificando tu autorización con TikTok...";
+      if (!state || (!code && !error)) {
+        mensaje.textContent =
+          "No se recibió una autorización completa.";
 
         detalle.textContent =
-          "Espera un momento mientras nuestro servidor comprueba la respuesta.";
+          "Inicia el proceso desde la aplicación.";
 
-        try {
-          const response = await fetch(`${API_URL}/auth/tiktok/callback`, {
+        return;
+      }
+
+      try {
+        mensaje.textContent =
+          "Verificando autorización con TikTok...";
+
+        const response = await fetch(
+          `${API_URL}/auth/tiktok/callback`,
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -214,38 +222,37 @@
             body: JSON.stringify({
               code,
               state,
+              error,
             }),
             cache: "no-store",
-          });
-
-          const data = await response.json();
-
-          if (!response.ok || data.ok !== true || data.verified !== true) {
-            throw new Error(
-              typeof data.error === "string"
-                ? data.error
-                : "No fue posible verificar la autorización.",
-            );
           }
+        );
 
-          mensaje.textContent = "¡Autorización verificada correctamente!";
+        const result = await response.json();
 
-          detalle.textContent =
-            "TikTok confirmó la autorización. Aún falta conectar esta verificación con una sesión dentro de la aplicación.";
-        } catch (err) {
-          mensaje.textContent = "No pudimos completar la verificación.";
-
-          if (err instanceof TypeError) {
-            detalle.textContent =
-              "No fue posible conectar con el servidor. Revisa que Railway esté funcionando y permita solicitudes desde GitHub Pages.";
-          } else {
-            detalle.textContent =
-              err instanceof Error
-                ? err.message
-                : "Ocurrió un error inesperado.";
-          }
+        if (!response.ok || !result.ok) {
+          throw new Error(
+            result.error ||
+            "No se pudo verificar la autorización."
+          );
         }
-      })();
-    </script>
-  </body>
+
+        mensaje.textContent =
+          "¡Autorización verificada correctamente!";
+
+        detalle.textContent =
+          "Regresa a Expo Go. La aplicación comprobará tu sesión y abrirá el perfil correspondiente.";
+
+      } catch (err) {
+        mensaje.textContent =
+          "No fue posible completar la verificación.";
+
+        detalle.textContent =
+          err instanceof Error
+            ? err.message
+            : "Inténtalo de nuevo desde la aplicación.";
+      }
+    })();
+  </script>
+</body>
 </html>
