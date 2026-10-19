@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { abrirPerfil } from "../utils/acceso";
 
 import { StatusBar } from "expo-status-bar";
 
@@ -353,12 +353,9 @@ export default function AboutScreen() {
                 key={integrante.ruta}
                 style={styles.memberCard}
                 activeOpacity={0.8}
-                onPress={() =>
-                  router.push({
-                    pathname: "/login",
-                    params: { redirect: integrante.ruta },
-                  })
-                }
+                onPress={() => {
+                  void abrirPerfil(integrante.ruta);
+                }}
               >
                 <View style={styles.memberCircle}>
                   <Text style={styles.memberNumber}>{integrante.numero}</Text>
@@ -372,7 +369,7 @@ export default function AboutScreen() {
                     CONOCE A {integrante.nombre}
                   </Text>
                   <Text style={styles.memberHint}>
-                    Inicia sesión para explorar el perfil
+                    Explora el perfil del integrante
                   </Text>
                 </View>
 
