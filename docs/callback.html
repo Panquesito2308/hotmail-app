@@ -3,59 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Autenticación - TikTok App Escolar</title>
+    <meta name="theme-color" content="#03101A" />
+    <title>Autenticación | BEYOND / 26</title>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
-        background: #101010;
-        color: #ffffff;
-        font-family: Arial, sans-serif;
-        min-height: 100vh;
         margin: 0;
+        min-height: 100vh;
+        background: #03101a;
+        color: #f1f7fc;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .background {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 50% 20%,
+          #19435c 0%,
+          #09263a 38%,
+          #03101a 75%
+        );
+      }
+      .veil {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(1, 12, 24, 0.2),
+          rgba(1, 12, 24, 0.75)
+        );
+      }
+      .page {
+        position: relative;
+        min-height: 100vh;
         display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 38px clamp(24px, 6vw, 80px);
       }
-
-      .container {
-        padding: 24px;
-        max-width: 440px;
+      .brand,
+      .footer,
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 2px;
       }
-
+      .brand {
+        color: #f1f7fc;
+      }
+      main {
+        width: 100%;
+        max-width: 700px;
+        padding: 65px 0;
+        animation: appear 0.9s ease both;
+      }
+      .eyebrow {
+        color: #82b5d4;
+        margin-bottom: 25px;
+      }
       h1 {
-        color: #fe2c55;
+        margin: 0;
+        font-size: clamp(48px, 10vw, 92px);
+        line-height: 1.02;
+        letter-spacing: -3px;
+        font-weight: 900;
+      }
+      h1 span {
+        color: #82b5d4;
+      }
+      .line {
+        height: 2px;
+        width: 58px;
+        margin: 30px 0 24px;
+        background: #d7ecf8;
       }
       p {
-        line-height: 1.6;
-        color: #cccccc;
+        color: #d3e5ef;
+        font-size: 16px;
+        line-height: 1.7;
+        max-width: 480px;
+      }
+      .detail {
+        color: #afc4d2;
+        font-size: 13px;
+        margin-top: 20px;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        color: #b4c9d9;
+        font-size: 9px;
+      }
+      @keyframes appear {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        main {
+          animation: none;
+        }
       }
     </style>
   </head>
   <body>
-    <main class="container">
-      <h1>TikTok App Escolar</h1>
-      <p id="mensaje">Procesando respuesta de TikTok...</p>
-    </main>
-
+    <div class="background" aria-hidden="true"></div>
+    <div class="veil" aria-hidden="true"></div>
+    <div class="page">
+      <header class="brand">BEYOND / 26</header>
+      <main>
+        <div class="eyebrow">AUTHENTICATION / TIKTOK</div>
+        <h1>BEYOND<br />THE <span>LOGIN.</span></h1>
+        <div class="line"></div>
+        <p id="mensaje" role="status" aria-live="polite">
+          Esperando la respuesta de TikTok...
+        </p>
+        <p id="detalle" class="detail"></p>
+      </main>
+      <footer class="footer">
+        <span>DESIGN × TECHNOLOGY × CREATIVITY</span><span>© 2026</span>
+      </footer>
+    </div>
     <script>
-      const params = new URLSearchParams(window.location.search);
-      const error = params.get("error");
-      const code = params.get("code");
-      const mensaje = document.getElementById("mensaje");
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get("error");
+        const code = params.get("code");
+        const state = params.get("state");
+        const mensaje = document.getElementById("mensaje");
+        const detalle = document.getElementById("detalle");
 
-      if (error) {
-        mensaje.textContent = "La autorización fue cancelada o rechazada.";
-      } else if (code) {
-        mensaje.textContent =
-          "TikTok devolvió una autorización. " +
-          "La integración del inicio de sesión está pendiente.";
-      } else {
-        mensaje.textContent = "Página de retorno de autenticación.";
-      }
+        // No mostrar ni guardar códigos de autorización ni tokens.
+        // Quitar los parámetros de la barra de direcciones para reducir exposición accidental.
+        if (window.location.search) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
 
-      // No mostramos ni almacenamos el código de autorización.
-      // La validación de state y el intercambio del código
-      // deberán implementarse mediante un flujo OAuth seguro.
+        if (error) {
+          mensaje.textContent =
+            "La autorización fue cancelada o TikTok la rechazó.";
+          detalle.textContent =
+            "Puedes volver a la aplicación e intentarlo nuevamente.";
+        } else if (code && state) {
+          mensaje.textContent =
+            "TikTok devolvió una respuesta de autorización.";
+          detalle.textContent =
+            "Aún falta verificarla en nuestro servidor. No has iniciado sesión todavía.";
+        } else if (code) {
+          mensaje.textContent =
+            "La respuesta está incompleta: falta el parámetro de seguridad.";
+          detalle.textContent = "No se ha iniciado sesión.";
+        } else {
+          mensaje.textContent =
+            "Esta es la página de retorno de autenticación.";
+          detalle.textContent = "Inicia el proceso desde la aplicación.";
+        }
+      })();
     </script>
   </body>
 </html>
