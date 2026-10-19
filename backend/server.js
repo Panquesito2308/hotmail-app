@@ -9,13 +9,54 @@ require("dotenv").config({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(express.json({ limit: "16kb" }));
+const ORIGEN_PERMITIDO = "https://panquesito2308.github.io";
+
+const TIEMPO_AUTORIZACION = 10 * 60 * 1000;
+const TIEMPO_SESION = 60 * 60 * 1000;
 
 const autorizacionesPendientes = new Map();
 const sesiones = new Map();
 
-const TIEMPO_AUTORIZACION = 10 * 60 * 1000;
-const TIEMPO_SESION = 60 * 60 * 1000;
+// ==================================================
+// CONFIGURACIÓN GENERAL
+// ==================================================
+
+app.use(express.json({ limit: "16kb" }));
+
+// Permitir que GitHub Pages se comunique con nuestro
+// endpoint de verificación de TikTok.
+//
+// Nota: CORS controla el acceso desde navegadores.
+// No sustituye la validación del state ni una sesión.
+app.use((req, res, next) => {
+  if (req.path !== "/auth/tiktok/callback") {
+    return next();
+  }
+
+  const origin = req.headers.origin;
+
+  if (origin !== ORIGEN_PERMITIDO) {
+    return res.status(403).json({
+      ok: false,
+      error: "Origen no permitido.",
+    });
+  }
+
+  res.setHeader("Access-Control-Allow-Origin", ORIGEN_PERMITIDO);
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+// ==================================================
+// FUNCIONES AUXILIARES
+// ==================================================
 
 function limpiarExpirados() {
   const ahora = Date.now();
@@ -33,20 +74,17 @@ function limpiarExpirados() {
   }
 }
 
-function compararState(recibido, esperado) {
-  if (
-    typeof recibido !== "string" ||
-    typeof esperado !== "string" ||
-    !/^[a-f0-9]{64}$/.test(recibido)
-  ) {
+function validarState(state) {
+  if (typeof state !== "string" || !/^[a-f0-9]{64}$/.test(state)) {
     return false;
   }
 
-  return crypto.timingSafeEqual(
-    Buffer.from(recibido, "hex"),
-    Buffer.from(esperado, "hex"),
-  );
+  return autorizacionesPendientes.has(state);
 }
+
+// ==================================================
+// COMPROBAR SERVIDOR
+// ==================================================
 
 app.get("/health", (req, res) => {
   res.json({
@@ -54,6 +92,10 @@ app.get("/health", (req, res) => {
     service: "TikTok auth backend",
   });
 });
+
+// ==================================================
+// COMPROBAR CONFIGURACIÓN DE TIKTOK
+// ==================================================
 
 app.get("/auth/tiktok/status", (req, res) => {
   const variables = [
@@ -70,6 +112,10 @@ app.get("/auth/tiktok/status", (req, res) => {
     missing,
   });
 });
+
+// ==================================================
+// INICIAR AUTORIZACIÓN CON TIKTOK
+// ==================================================
 
 app.get("/auth/tiktok/start", (req, res) => {
   const { TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, TIKTOK_REDIRECT_URI } =
@@ -98,11 +144,15 @@ app.get("/auth/tiktok/start", (req, res) => {
   url.searchParams.set("redirect_uri", TIKTOK_REDIRECT_URI);
   url.searchParams.set("state", state);
 
-  res.json({
+  return res.json({
     ok: true,
     authorizationUrl: url.toString(),
   });
 });
+
+// ==================================================
+// RECIBIR Y VERIFICAR RESPUESTA DE TIKTOK
+// ==================================================
 
 app.post("/auth/tiktok/callback", async (req, res) => {
   const { code, state, error } = req.body || {};
@@ -116,32 +166,31 @@ app.post("/auth/tiktok/callback", async (req, res) => {
 
   if (
     typeof code !== "string" ||
-    !code ||
+    code.length === 0 ||
     code.length > 4096 ||
-    typeof state !== "string"
+    !validarState(state)
   ) {
     return res.status(400).json({
       ok: false,
-      error: "Respuesta de autorización incompleta.",
+      error: "Respuesta de autorización incompleta o no válida.",
     });
   }
-
-  limpiarExpirados();
 
   const autorizacion = autorizacionesPendientes.get(state);
 
   if (
     !autorizacion ||
-    !compararState(state, state) ||
     Date.now() - autorizacion.createdAt > TIEMPO_AUTORIZACION
   ) {
+    autorizacionesPendientes.delete(state);
+
     return res.status(400).json({
       ok: false,
-      error: "La autorización expiró o no es válida.",
+      error: "La autorización expiró.",
     });
   }
 
-  // El código de autorización solo puede utilizarse una vez.
+  // Evitar reutilizar la misma autorización.
   autorizacionesPendientes.delete(state);
 
   const { TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, TIKTOK_REDIRECT_URI } =
@@ -178,10 +227,10 @@ app.post("/auth/tiktok/callback", async (req, res) => {
     const datos = await respuesta.json();
 
     if (!respuesta.ok || !datos.access_token || !datos.open_id) {
-      console.error("TikTok rechazó el intercambio:", {
+      console.error("Error de autorización de TikTok:", {
         status: respuesta.status,
         error: datos.error,
-        error_description: datos.error_description,
+        description: datos.error_description,
       });
 
       return res.status(400).json({
@@ -200,15 +249,18 @@ app.post("/auth/tiktok/callback", async (req, res) => {
       expiresAt: Date.now() + TIEMPO_SESION,
     });
 
-    // Nunca devolver los tokens de TikTok al navegador.
-    // La sesión se mantiene únicamente en el servidor.
+    // No enviamos tokens de TikTok ni identificadores
+    // de sesión al navegador de GitHub Pages.
     return res.json({
       ok: true,
       verified: true,
       message: "TikTok verificó la autorización correctamente.",
     });
   } catch (error) {
-    console.error("Error al verificar TikTok:", error.message);
+    console.error(
+      "Error al conectar con TikTok:",
+      error instanceof Error ? error.message : error,
+    );
 
     return res.status(502).json({
       ok: false,
@@ -216,6 +268,10 @@ app.post("/auth/tiktok/callback", async (req, res) => {
     });
   }
 });
+
+// ==================================================
+// INICIAR SERVIDOR
+// ==================================================
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend TikTok listo en http://localhost:${PORT}`);
