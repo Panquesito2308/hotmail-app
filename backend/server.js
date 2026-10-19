@@ -16,6 +16,7 @@ const TIEMPO_SESION = 60 * 60 * 1000;
 
 const autorizacionesPendientes = new Map();
 const sesiones = new Map();
+const intercambios = new Map();
 
 // ==================================================
 // CONFIGURACIÓN GENERAL
@@ -23,17 +24,15 @@ const sesiones = new Map();
 
 app.use(express.json({ limit: "16kb" }));
 
-// Permitir que GitHub Pages se comunique con nuestro
-// endpoint de verificación de TikTok.
-//
-// Nota: CORS controla el acceso desde navegadores.
-// No sustituye la validación del state ni una sesión.
+// CORS para el callback publicado en GitHub Pages.
 app.use((req, res, next) => {
   if (req.path !== "/auth/tiktok/callback") {
     return next();
   }
 
   const origin = req.headers.origin;
+
+  res.setHeader("Vary", "Origin");
 
   if (origin !== ORIGEN_PERMITIDO) {
     return res.status(403).json({
@@ -43,7 +42,6 @@ app.use((req, res, next) => {
   }
 
   res.setHeader("Access-Control-Allow-Origin", ORIGEN_PERMITIDO);
-  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -58,6 +56,18 @@ app.use((req, res, next) => {
 // FUNCIONES AUXILIARES
 // ==================================================
 
+function generarToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function esTokenValido(valor) {
+  return typeof valor === "string" && /^[a-f0-9]{64}$/.test(valor);
+}
+
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 function limpiarExpirados() {
   const ahora = Date.now();
 
@@ -68,22 +78,45 @@ function limpiarExpirados() {
   }
 
   for (const [id, sesion] of sesiones) {
-    if (ahora > sesion.expiresAt) {
+    if (ahora >= sesion.expiresAt) {
       sesiones.delete(id);
+    }
+  }
+
+  for (const [state, intercambio] of intercambios) {
+    if (ahora - intercambio.createdAt > TIEMPO_AUTORIZACION) {
+      intercambios.delete(state);
     }
   }
 }
 
-function validarState(state) {
-  if (typeof state !== "string" || !/^[a-f0-9]{64}$/.test(state)) {
-    return false;
+function obtenerSesion(req) {
+  const authorization = req.headers.authorization;
+
+  if (
+    typeof authorization !== "string" ||
+    !authorization.startsWith("Bearer ")
+  ) {
+    return null;
   }
 
-  return autorizacionesPendientes.has(state);
+  const token = authorization.slice(7);
+
+  if (!esTokenValido(token)) {
+    return null;
+  }
+
+  const sesion = sesiones.get(hashToken(token));
+
+  if (!sesion || Date.now() >= sesion.expiresAt) {
+    return null;
+  }
+
+  return sesion;
 }
 
 // ==================================================
-// COMPROBAR SERVIDOR
+// ESTADO DEL SERVIDOR
 // ==================================================
 
 app.get("/health", (req, res) => {
@@ -92,10 +125,6 @@ app.get("/health", (req, res) => {
     service: "TikTok auth backend",
   });
 });
-
-// ==================================================
-// COMPROBAR CONFIGURACIÓN DE TIKTOK
-// ==================================================
 
 app.get("/auth/tiktok/status", (req, res) => {
   const variables = [
@@ -114,10 +143,15 @@ app.get("/auth/tiktok/status", (req, res) => {
 });
 
 // ==================================================
-// INICIAR AUTORIZACIÓN CON TIKTOK
+// INICIAR AUTORIZACIÓN
 // ==================================================
+//
+// La aplicación genera un secreto aleatorio y
+// envía únicamente su hash SHA-256 al backend.
+//
+// El secreto original permanece en Expo Go.
 
-app.get("/auth/tiktok/start", (req, res) => {
+app.post("/auth/tiktok/start", (req, res) => {
   const { TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, TIKTOK_REDIRECT_URI } =
     process.env;
 
@@ -128,11 +162,21 @@ app.get("/auth/tiktok/start", (req, res) => {
     });
   }
 
+  const { challenge } = req.body || {};
+
+  if (!esTokenValido(challenge)) {
+    return res.status(400).json({
+      ok: false,
+      error: "Falta el challenge de la aplicación.",
+    });
+  }
+
   limpiarExpirados();
 
-  const state = crypto.randomBytes(32).toString("hex");
+  const state = generarToken();
 
   autorizacionesPendientes.set(state, {
+    challenge,
     createdAt: Date.now(),
   });
 
@@ -146,12 +190,13 @@ app.get("/auth/tiktok/start", (req, res) => {
 
   return res.json({
     ok: true,
+    state,
     authorizationUrl: url.toString(),
   });
 });
 
 // ==================================================
-// RECIBIR Y VERIFICAR RESPUESTA DE TIKTOK
+// VERIFICAR RESPUESTA DE TIKTOK
 // ==================================================
 
 app.post("/auth/tiktok/callback", async (req, res) => {
@@ -168,7 +213,7 @@ app.post("/auth/tiktok/callback", async (req, res) => {
     typeof code !== "string" ||
     code.length === 0 ||
     code.length > 4096 ||
-    !validarState(state)
+    !esTokenValido(state)
   ) {
     return res.status(400).json({
       ok: false,
@@ -178,10 +223,14 @@ app.post("/auth/tiktok/callback", async (req, res) => {
 
   const autorizacion = autorizacionesPendientes.get(state);
 
-  if (
-    !autorizacion ||
-    Date.now() - autorizacion.createdAt > TIEMPO_AUTORIZACION
-  ) {
+  if (!autorizacion) {
+    return res.status(400).json({
+      ok: false,
+      error: "Autorización inexistente o ya utilizada.",
+    });
+  }
+
+  if (Date.now() - autorizacion.createdAt > TIEMPO_AUTORIZACION) {
     autorizacionesPendientes.delete(state);
 
     return res.status(400).json({
@@ -190,7 +239,8 @@ app.post("/auth/tiktok/callback", async (req, res) => {
     });
   }
 
-  // Evitar reutilizar la misma autorización.
+  // Consumir el state antes de comunicarnos con TikTok.
+  // Así no puede reutilizarse simultáneamente.
   autorizacionesPendientes.delete(state);
 
   const { TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, TIKTOK_REDIRECT_URI } =
@@ -239,18 +289,18 @@ app.post("/auth/tiktok/callback", async (req, res) => {
       });
     }
 
-    const idSesion = crypto.randomBytes(32).toString("hex");
+    // La sesión aún no se entrega.
+    // Queda pendiente hasta que la app demuestre
+    // que conoce el secreto original.
 
-    sesiones.set(idSesion, {
+    intercambios.set(state, {
+      challenge: autorizacion.challenge,
       openId: datos.open_id,
       accessToken: datos.access_token,
       refreshToken: datos.refresh_token || null,
       createdAt: Date.now(),
-      expiresAt: Date.now() + TIEMPO_SESION,
     });
 
-    // No enviamos tokens de TikTok ni identificadores
-    // de sesión al navegador de GitHub Pages.
     return res.json({
       ok: true,
       verified: true,
@@ -267,6 +317,144 @@ app.post("/auth/tiktok/callback", async (req, res) => {
       error: "No fue posible comunicarse con TikTok.",
     });
   }
+});
+
+// ==================================================
+// CONSULTAR ESTADO DE AUTORIZACIÓN
+// ==================================================
+//
+// Expo Go consulta esta ruta mientras el usuario
+// autoriza TikTok en el navegador.
+//
+// No se entregan tokens en esta consulta.
+
+app.post("/auth/tiktok/poll", (req, res) => {
+  const { state, verifier } = req.body || {};
+
+  if (!esTokenValido(state) || !esTokenValido(verifier)) {
+    return res.status(400).json({
+      ok: false,
+      error: "Datos de verificación inválidos.",
+    });
+  }
+
+  limpiarExpirados();
+
+  const challenge = hashToken(verifier);
+
+  const pendiente = autorizacionesPendientes.get(state);
+
+  if (pendiente) {
+    if (pendiente.challenge !== challenge) {
+      return res.status(403).json({
+        ok: false,
+        error: "Verificación no autorizada.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      status: "pending",
+    });
+  }
+
+  const intercambio = intercambios.get(state);
+
+  if (!intercambio) {
+    return res.status(404).json({
+      ok: false,
+      error: "Autorización inexistente, expirada o utilizada.",
+    });
+  }
+
+  if (intercambio.challenge !== challenge) {
+    return res.status(403).json({
+      ok: false,
+      error: "Verificación no autorizada.",
+    });
+  }
+
+  // Solo el dispositivo que inició la autorización
+  // puede reclamar esta sesión.
+  intercambios.delete(state);
+
+  const tokenSesion = generarToken();
+
+  sesiones.set(hashToken(tokenSesion), {
+    openId: intercambio.openId,
+    accessToken: intercambio.accessToken,
+    refreshToken: intercambio.refreshToken,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + TIEMPO_SESION,
+  });
+
+  return res.json({
+    ok: true,
+    status: "complete",
+    sessionToken: tokenSesion,
+    expiresIn: TIEMPO_SESION / 1000,
+  });
+});
+
+// ==================================================
+// VALIDAR SESIÓN
+// ==================================================
+
+app.get("/auth/session", (req, res) => {
+  limpiarExpirados();
+
+  const sesion = obtenerSesion(req);
+
+  if (!sesion) {
+    return res.status(401).json({
+      ok: false,
+      authenticated: false,
+      error: "Sesión inválida o expirada.",
+    });
+  }
+
+  return res.json({
+    ok: true,
+    authenticated: true,
+    user: {
+      provider: "tiktok",
+      openId: sesion.openId,
+    },
+  });
+});
+
+// ==================================================
+// CERRAR SESIÓN
+// ==================================================
+
+app.post("/auth/logout", (req, res) => {
+  const authorization = req.headers.authorization;
+
+  if (
+    typeof authorization !== "string" ||
+    !authorization.startsWith("Bearer ")
+  ) {
+    return res.status(401).json({
+      ok: false,
+      error: "Sesión no proporcionada.",
+    });
+  }
+
+  const token = authorization.slice(7);
+
+  if (!esTokenValido(token)) {
+    return res.status(401).json({
+      ok: false,
+      error: "Sesión inválida.",
+    });
+  }
+
+  sesiones.delete(hashToken(token));
+
+  return res.json({
+    ok: true,
+    message: "Sesión cerrada.",
+  });
 });
 
 // ==================================================

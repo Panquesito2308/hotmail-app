@@ -339,40 +339,46 @@ export default function AboutScreen() {
               forma a este proyecto.
             </Text>
 
-            <TouchableOpacity
-              style={styles.memberCard}
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: "/login",
-                  params: { redirect: "/perfil-adrian" },
-                })
-              }
-            >
-              <View style={styles.memberCircle}>
-                <Text style={styles.memberNumber}>01</Text>
-              </View>
+            {(
+              [
+                {
+                  numero: "01",
+                  nombre: "FRANCISCO",
+                  ruta: "/perfil-francisco",
+                },
+                { numero: "02", nombre: "LUIS", ruta: "/perfil-luis" },
+              ] as const
+            ).map((integrante) => (
+              <TouchableOpacity
+                key={integrante.ruta}
+                style={styles.memberCard}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "/login",
+                    params: { redirect: integrante.ruta },
+                  })
+                }
+              >
+                <View style={styles.memberCircle}>
+                  <Text style={styles.memberNumber}>{integrante.numero}</Text>
+                </View>
 
-              <View style={styles.memberInfo}>
-                <Text style={styles.memberCategory}>TEAM MEMBER</Text>
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberCategory}>TEAM MEMBER</Text>
+                  <Text
+                    style={[styles.memberName, { fontSize: mobile ? 16 : 20 }]}
+                  >
+                    CONOCE A {integrante.nombre}
+                  </Text>
+                  <Text style={styles.memberHint}>
+                    Inicia sesión para explorar el perfil
+                  </Text>
+                </View>
 
-                <Text
-                  style={[styles.memberName, { fontSize: mobile ? 16 : 20 }]}
-                >
-                  CONOCE A ADRIÁN
-                </Text>
-
-                <Text style={styles.memberHint}>
-                  Inicia sesión para explorar el perfil
-                </Text>
-              </View>
-
-              <Text style={styles.memberArrow}>↗</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.teamNote}>
-              PRÓXIMAMENTE / MÁS PERFILES DEL EQUIPO
-            </Text>
+                <Text style={styles.memberArrow}>↗</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
