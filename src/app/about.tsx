@@ -347,6 +347,7 @@ export default function AboutScreen() {
                   ruta: "/perfil-francisco",
                 },
                 { numero: "02", nombre: "LUIS", ruta: "/perfil-luis" },
+                { numero: "03", nombre: "SOSA", ruta: "/perfil-sosa" },
               ] as const
             ).map((integrante) => (
               <TouchableOpacity

@@ -1,8 +1,7 @@
 import { router } from "expo-router";
 import { verificarSesion } from "./sesion";
 
-export type PerfilRuta = "/perfil-francisco" | "/perfil-luis";
-
+type PerfilRuta = "/perfil-francisco" | "/perfil-luis" | "/perfil-sosa";
 export async function abrirPerfil(perfil: PerfilRuta): Promise<void> {
   const autenticado = await verificarSesion();
 
