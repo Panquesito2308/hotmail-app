@@ -1,10 +1,13 @@
+import { router, useFocusEffect } from "expo-router";
 import { abrirPerfil } from "../utils/acceso";
+import { eliminarSesion, verificarSesion } from "../utils/sesion";
 
 import { StatusBar } from "expo-status-bar";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  Alert,
   Animated,
   Image,
   ScrollView,
@@ -78,6 +81,53 @@ export default function AboutScreen() {
     ]).start();
   }, [fade, slide]);
 
+  const [sesionActiva, setSesionActiva] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let vigente = true;
+
+      const comprobarSesion = async () => {
+        try {
+          const autenticado = await verificarSesion();
+          if (vigente) setSesionActiva(autenticado);
+        } catch (error) {
+          console.error("Error al verificar sesión:", error);
+          if (vigente) setSesionActiva(false);
+        }
+      };
+
+      void comprobarSesion();
+      return () => {
+        vigente = false;
+      };
+    }, []),
+  );
+
+  const cerrarSesion = () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Quieres cerrar tu sesión de TikTok en BEYOND / 26?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Cerrar sesión",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await eliminarSesion();
+              setSesionActiva(false);
+              router.replace("/login");
+            } catch (error) {
+              console.error("Error al cerrar sesión:", error);
+              Alert.alert("Error", "No se pudo cerrar la sesión.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -125,7 +175,17 @@ export default function AboutScreen() {
           <View style={styles.navbar}>
             <Text style={styles.brand}>BEYOND / 26</Text>
 
-            <Text style={styles.navText}>ABOUT US ↗</Text>
+            {sesionActiva && (
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={cerrarSesion}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar sesión de TikTok"
+              >
+                <Text style={styles.logoutText}>CERRAR SESIÓN ↗</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <Animated.View
@@ -348,6 +408,7 @@ export default function AboutScreen() {
                 },
                 { numero: "02", nombre: "LUIS", ruta: "/perfil-luis" },
                 { numero: "03", nombre: "SOSA", ruta: "/perfil-sosa" },
+                { numero: "04", nombre: "SARA", ruta: "/perfil-sara" },
               ] as const
             ).map((integrante) => (
               <TouchableOpacity
@@ -498,6 +559,22 @@ const styles = StyleSheet.create({
     fontWeight: "900",
 
     letterSpacing: 2,
+  },
+
+  logoutButton: {
+    borderWidth: 1,
+    borderColor: "#557E99",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "rgba(3, 16, 26, 0.65)",
+  },
+
+  logoutText: {
+    color: "#E0F2FF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 
   navText: {

@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function PerfilFrancisco() {
@@ -23,7 +23,13 @@ export default function PerfilFrancisco() {
         >
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/about");
+              }
+            }}
           >
             <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </TouchableOpacity>
@@ -51,17 +57,21 @@ export default function PerfilFrancisco() {
 
             <View style={styles.infoRow}>
               <Ionicons name="school-outline" size={19} color="#A9D4E9" />
-              <Text style={styles.infoText}>Carrera: Por completar</Text>
+              <Text style={styles.infoText}>
+                Carrera: Ing. Desarrollo y Gestión de Software
+              </Text>
             </View>
 
             <View style={styles.infoRow}>
               <Ionicons name="book-outline" size={19} color="#A9D4E9" />
-              <Text style={styles.infoText}>Materia: Por completar</Text>
+              <Text style={styles.infoText}>
+                Materia: Desarrollo movil integral{" "}
+              </Text>
             </View>
 
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={19} color="#A9D4E9" />
-              <Text style={styles.infoText}>Semestre: Por completar</Text>
+              <Text style={styles.infoText}>Cuatrimestre: 10 </Text>
             </View>
           </View>
 

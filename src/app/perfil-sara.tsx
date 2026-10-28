@@ -1,4 +1,3 @@
-
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -20,10 +19,7 @@ export default function PerfilSara() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#342044"
-      />
+      <StatusBar barStyle="light-content" backgroundColor="#342044" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -34,30 +30,24 @@ export default function PerfilSara() {
           <View style={styles.navigation}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/about");
+                }
+              }}
               accessibilityLabel="Regresar"
             >
-              <Ionicons
-                name="arrow-back"
-                size={24}
-                color="#FFFFFF"
-              />
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <Text style={styles.headerLabel}>
-              Mi espacio personal
-            </Text>
+            <Text style={styles.headerLabel}>Mi espacio personal</Text>
 
-            <Ionicons
-              name="sparkles"
-              size={24}
-              color="#F2A9D1"
-            />
+            <Ionicons name="sparkles" size={24} color="#F2A9D1" />
           </View>
 
-          <Text style={styles.greeting}>
-            ¡Hola, soy Sara!
-          </Text>
+          <Text style={styles.greeting}>¡Hola, soy Sara!</Text>
 
           <Text style={styles.headerSubtitle}>
             Bienvenido a un pedacito de mi mundo ✨
@@ -71,20 +61,12 @@ export default function PerfilSara() {
           {/* PRESENTACIÓN PERSONAL */}
           <View style={styles.profileCard}>
             <View style={styles.avatar}>
-              <Ionicons
-                name="person-outline"
-                size={48}
-                color="#F7C8E4"
-              />
+              <Ionicons name="person-outline" size={48} color="#F7C8E4" />
             </View>
 
-            <Text style={styles.name}>
-              Sara Elizabeth Cruz Gómez
-            </Text>
+            <Text style={styles.name}>Sara Elizabeth Cruz Gómez</Text>
 
-            <Text style={styles.role}>
-              Estudiante de Ingeniería
-            </Text>
+            <Text style={styles.role}>Estudiante de Ingeniería</Text>
 
             <Text style={styles.roleDetail}>
               En proceso de formación profesional
@@ -100,99 +82,60 @@ export default function PerfilSara() {
           {/* CUATRIMESTRE Y GRUPO */}
           <View style={styles.statsRow}>
             <View style={styles.semesterCard}>
-              <Ionicons
-                name="school-outline"
-                size={25}
-                color="#F0A8D2"
-              />
+              <Ionicons name="school-outline" size={25} color="#F0A8D2" />
 
-              <Text style={styles.semesterNumber}>
-                10°
-              </Text>
+              <Text style={styles.semesterNumber}>10°</Text>
 
-              <Text style={styles.statLabel}>
-                Cuatrimestre
-              </Text>
+              <Text style={styles.statLabel}>Cuatrimestre</Text>
             </View>
 
             <View style={styles.groupCard}>
-              <Ionicons
-                name="people-outline"
-                size={25}
-                color="#B6A7FA"
-              />
+              <Ionicons name="people-outline" size={25} color="#B6A7FA" />
 
-              <Text style={styles.groupNumber}>
-                A
-              </Text>
+              <Text style={styles.groupNumber}>A</Text>
 
-              <Text style={styles.statLabel}>
-                Grupo
-              </Text>
+              <Text style={styles.statLabel}>Grupo</Text>
             </View>
           </View>
 
           {/* SOBRE MÍ */}
           <View style={styles.card}>
             <View style={styles.sectionHeading}>
-              <Ionicons
-                name="heart-outline"
-                size={24}
-                color="#F0A8D2"
-              />
+              <Ionicons name="heart-outline" size={24} color="#F0A8D2" />
 
-              <Text style={styles.sectionTitle}>
-                Un poquito sobre mí
-              </Text>
+              <Text style={styles.sectionTitle}>Un poquito sobre mí</Text>
             </View>
 
             <Text style={styles.paragraph}>
-              ¡Hola! Soy Sara Elizabeth, actualmente
-              soy estudiante de Ingeniería en
-              Desarrollo y Gestión de Software.
-              Me encuentro en proceso de formación
-              académica, adquiriendo nuevos
-              conocimientos y experiencias que
-              me ayudarán a crecer tanto personal
-              como profesionalmente.
+              ¡Hola! Soy Sara Elizabeth, actualmente soy estudiante de
+              Ingeniería en Desarrollo y Gestión de Software. Me encuentro en
+              proceso de formación académica, adquiriendo nuevos conocimientos y
+              experiencias que me ayudarán a crecer tanto personal como
+              profesionalmente.
             </Text>
 
             <Text style={styles.paragraph}>
-              Cada día sigo aprendiendo y
-              esforzándome para alcanzar mis metas
-              y continuar preparándome para mi futuro.
+              Cada día sigo aprendiendo y esforzándome para alcanzar mis metas y
+              continuar preparándome para mi futuro.
             </Text>
           </View>
 
           {/* MI FORMACIÓN ACADÉMICA */}
           <View style={styles.card}>
             <View style={styles.sectionHeading}>
-              <Ionicons
-                name="book-outline"
-                size={24}
-                color="#F0A8D2"
-              />
+              <Ionicons name="book-outline" size={24} color="#F0A8D2" />
 
-              <Text style={styles.sectionTitle}>
-                Mi formación
-              </Text>
+              <Text style={styles.sectionTitle}>Mi formación</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <Ionicons
-                name="laptop-outline"
-                size={22}
-                color="#C4B5FD"
-              />
+              <Ionicons name="laptop-outline" size={22} color="#C4B5FD" />
 
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>
-                  CARRERA
-                </Text>
+                <Text style={styles.infoLabel}>CARRERA</Text>
 
                 <Text style={styles.infoValue}>
-                  Ingeniería en Desarrollo y
-                  Gestión de Software
+                  Ingeniería en Desarrollo y Gestión de Software
                 </Text>
               </View>
             </View>
@@ -200,36 +143,22 @@ export default function PerfilSara() {
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
-              <Ionicons
-                name="book-outline"
-                size={22}
-                color="#C4B5FD"
-              />
+              <Ionicons name="book-outline" size={22} color="#C4B5FD" />
 
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>
-                  MATERIA
-                </Text>
+                <Text style={styles.infoLabel}>MATERIA</Text>
 
-                <Text style={styles.infoValue}>
-                  Desarrollo Móvil Integral
-                </Text>
+                <Text style={styles.infoValue}>Desarrollo Móvil Integral</Text>
               </View>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
-              <Ionicons
-                name="location-outline"
-                size={22}
-                color="#C4B5FD"
-              />
+              <Ionicons name="location-outline" size={22} color="#C4B5FD" />
 
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>
-                  UNIVERSIDAD
-                </Text>
+                <Text style={styles.infoLabel}>UNIVERSIDAD</Text>
 
                 <Text style={styles.infoValue}>
                   Universidad Tecnológica de la Selva
@@ -241,26 +170,15 @@ export default function PerfilSara() {
           {/* PROCESO DE FORMACIÓN */}
           <View style={styles.card}>
             <View style={styles.sectionHeading}>
-              <Ionicons
-                name="star-outline"
-                size={24}
-                color="#F0A8D2"
-              />
+              <Ionicons name="star-outline" size={24} color="#F0A8D2" />
 
-              <Text style={styles.sectionTitle}>
-                Mi proceso de formación
-              </Text>
+              <Text style={styles.sectionTitle}>Mi proceso de formación</Text>
             </View>
 
             <View style={styles.tags}>
               {formacion.map((item) => (
-                <View
-                  key={item}
-                  style={styles.tag}
-                >
-                  <Text style={styles.tagText}>
-                    {item}
-                  </Text>
+                <View key={item} style={styles.tag}>
+                  <Text style={styles.tagText}>{item}</Text>
                 </View>
               ))}
             </View>
@@ -268,22 +186,16 @@ export default function PerfilSara() {
 
           {/* FRASE PERSONAL */}
           <View style={styles.quoteCard}>
-            <Ionicons
-              name="sparkles-outline"
-              size={24}
-              color="#F0A8D2"
-            />
+            <Ionicons name="sparkles-outline" size={24} color="#F0A8D2" />
 
             <Text style={styles.quote}>
-              "Cada día es una nueva oportunidad
-              para aprender, crecer y cumplir mis sueños."
+              "Cada día es una nueva oportunidad para aprender, crecer y cumplir
+              mis sueños."
             </Text>
           </View>
 
           {/* PIE DE PÁGINA */}
-          <Text style={styles.footer}>
-            Hecho con 💗 por Sara
-          </Text>
+          <Text style={styles.footer}>Hecho con 💗 por Sara</Text>
         </View>
       </ScrollView>
     </View>
