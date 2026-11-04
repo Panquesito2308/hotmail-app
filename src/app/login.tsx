@@ -29,6 +29,10 @@ const PERFILES = {
   "/perfil-francisco": "FRANCISCO",
 
   "/perfil-luis": "LUIS",
+
+  "/perfil-sosa": "SOSA",
+
+  "/perfil-sara": "SARA",
 } as const;
 
 type Perfil = keyof typeof PERFILES;
