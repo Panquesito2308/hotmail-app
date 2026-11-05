@@ -1,11 +1,8 @@
 import * as Crypto from "expo-crypto";
-
-import { router, useLocalSearchParams, type Href } from "expo-router";
-
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { guardarSesion, verificarSesion } from "../utils/sesion";
-
 import { useEffect, useRef, useState } from "react";
+import { guardarSesion, verificarSesion } from "../utils/sesion";
 
 import {
   ActivityIndicator,
@@ -27,19 +24,18 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 
 const PERFILES = {
   "/perfil-francisco": "FRANCISCO",
-
   "/perfil-luis": "LUIS",
-
   "/perfil-sosa": "SOSA",
-
   "/perfil-sara": "SARA",
 } as const;
 
 type Perfil = keyof typeof PERFILES;
 
-type Solicitud = { state: string; verifier: string; startedAt: number };
-
-// Solo en memoria: se borra al reiniciar la app. No es almacenamiento persistente.
+type Solicitud = {
+  state: string;
+  verifier: string;
+  startedAt: number;
+};
 
 let tokenDeSesion: string | null = null;
 
@@ -50,7 +46,9 @@ export function obtenerTokenTikTok() {
 export default function LoginScreen() {
   const { width, height } = useWindowDimensions();
 
-  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const { redirect } = useLocalSearchParams<{
+    redirect?: string;
+  }>();
 
   const perfil: Perfil =
     typeof redirect === "string" && redirect in PERFILES
@@ -58,38 +56,37 @@ export default function LoginScreen() {
       : "/perfil-francisco";
 
   const [loading, setLoading] = useState(false);
-
   const [esperando, setEsperando] = useState(false);
-
   const [loginError, setLoginError] = useState<string | null>(null);
-
   const [mensaje, setMensaje] = useState("");
 
   const solicitud = useRef<Solicitud | null>(null);
-
   const consultando = useRef(false);
-
   const activo = useRef(true);
 
   const fade = useRef(new Animated.Value(0)).current;
-
   const slide = useRef(new Animated.Value(35)).current;
 
+  // Navegar primero a la pantalla de App Open Ad.
+  function irAlAnuncio() {
+    router.replace({
+      pathname: "/app-open",
+      params: { redirect: perfil },
+    });
+  }
+
   useEffect(() => {
+    activo.current = true;
+
     Animated.parallel([
       Animated.timing(fade, {
         toValue: 1,
-
         duration: 1100,
-
         useNativeDriver: true,
       }),
-
       Animated.timing(slide, {
         toValue: 0,
-
         duration: 1100,
-
         useNativeDriver: true,
       }),
     ]).start();
@@ -99,15 +96,22 @@ export default function LoginScreen() {
     };
   }, [fade, slide]);
 
-  // Si ya existe una sesión válida, no volver a solicitar TikTok.
+  // Si existe una sesión válida, continuar al anuncio.
   useEffect(() => {
     let cancelado = false;
+
     void (async () => {
-      const autenticado = await verificarSesion();
-      if (!cancelado && autenticado) {
-        router.replace(perfil as Href);
+      try {
+        const autenticado = await verificarSesion();
+
+        if (!cancelado && autenticado) {
+          irAlAnuncio();
+        }
+      } catch (error) {
+        console.log("Error verificando sesión:", error);
       }
     })();
+
     return () => {
       cancelado = true;
     };
@@ -116,15 +120,14 @@ export default function LoginScreen() {
   async function consultarSesion() {
     const actual = solicitud.current;
 
-    if (!actual || consultando.current || !API_URL) return;
+    if (!actual || consultando.current || !API_URL) {
+      return;
+    }
 
     if (Date.now() - actual.startedAt > 10 * 60 * 1000) {
       solicitud.current = null;
-
       setEsperando(false);
-
       setLoginError("La autorización expiró. Intenta nuevamente.");
-
       return;
     }
 
@@ -133,19 +136,20 @@ export default function LoginScreen() {
     try {
       const respuesta = await fetch(`${API_URL}/auth/tiktok/poll`, {
         method: "POST",
-
-        headers: { "Content-Type": "application/json" },
-
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           state: actual.state,
-
           verifier: actual.verifier,
         }),
       });
 
       const datos = await respuesta.json();
 
-      if (datos.status === "pending") return;
+      if (datos.status === "pending") {
+        return;
+      }
 
       if (
         !respuesta.ok ||
@@ -155,10 +159,11 @@ export default function LoginScreen() {
         throw new Error(datos.error || "No se pudo recuperar la sesión.");
       }
 
-      // Confirmar el token con el servidor antes de navegar.
-
+      // Validar el token con el servidor.
       const comprobacion = await fetch(`${API_URL}/auth/session`, {
-        headers: { Authorization: `Bearer ${datos.sessionToken}` },
+        headers: {
+          Authorization: `Bearer ${datos.sessionToken}`,
+        },
       });
 
       const sesion = await comprobacion.json();
@@ -169,20 +174,17 @@ export default function LoginScreen() {
 
       await guardarSesion(datos.sessionToken);
       tokenDeSesion = datos.sessionToken;
-
       solicitud.current = null;
 
       if (activo.current) {
         setEsperando(false);
-
-        router.replace(perfil as Href);
+        irAlAnuncio();
       }
     } catch (err) {
       solicitud.current = null;
 
       if (activo.current) {
         setEsperando(false);
-
         setLoginError(
           err instanceof Error ? err.message : "Error al comprobar TikTok.",
         );
@@ -192,22 +194,23 @@ export default function LoginScreen() {
     }
   }
 
-  // Consulta solo al volver a Expo Go o mientras está visible.
-
   useEffect(() => {
     if (!esperando) return;
 
     const intervalo = setInterval(() => {
-      if (AppState.currentState === "active") void consultarSesion();
+      if (AppState.currentState === "active") {
+        void consultarSesion();
+      }
     }, 2500);
 
     const suscripcion = AppState.addEventListener("change", (estado) => {
-      if (estado === "active") void consultarSesion();
+      if (estado === "active") {
+        void consultarSesion();
+      }
     });
 
     return () => {
       clearInterval(intervalo);
-
       suscripcion.remove();
     };
   }, [esperando, perfil]);
@@ -216,14 +219,13 @@ export default function LoginScreen() {
     if (loading || esperando) return;
 
     setLoading(true);
-
     setLoginError(null);
-
     setMensaje("");
 
     try {
-      if (!API_URL)
+      if (!API_URL) {
         throw new Error("Falta EXPO_PUBLIC_API_URL en el .env de Expo.");
+      }
 
       const bytes = await Crypto.getRandomBytesAsync(32);
 
@@ -233,15 +235,14 @@ export default function LoginScreen() {
 
       const challenge = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-
         verifier,
       );
 
       const respuesta = await fetch(`${API_URL}/auth/tiktok/start`, {
         method: "POST",
-
-        headers: { "Content-Type": "application/json" },
-
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ challenge }),
       });
 
@@ -260,20 +261,16 @@ export default function LoginScreen() {
 
       solicitud.current = {
         state: datos.state,
-
         verifier,
-
         startedAt: Date.now(),
       };
 
       setEsperando(true);
-
-      setMensaje("Autoriza TikTok en Safari y regresa a Expo Go.");
+      setMensaje("Autoriza TikTok en el navegador y regresa a la aplicación.");
 
       await Linking.openURL(datos.authorizationUrl);
     } catch (err) {
       solicitud.current = null;
-
       setEsperando(false);
 
       setLoginError(
@@ -302,8 +299,10 @@ export default function LoginScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-
-          { minHeight: height, paddingHorizontal: mobile ? 24 : 48 },
+          {
+            minHeight: height,
+            paddingHorizontal: mobile ? 24 : 48,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -318,8 +317,10 @@ export default function LoginScreen() {
         <Animated.View
           style={[
             styles.content,
-
-            { opacity: fade, transform: [{ translateY: slide }] },
+            {
+              opacity: fade,
+              transform: [{ translateY: slide }],
+            },
           ]}
         >
           <Text style={styles.eyebrow}>01 / THE EXPERIENCE</Text>
@@ -327,8 +328,10 @@ export default function LoginScreen() {
           <Text
             style={[
               styles.title,
-
-              { fontSize: mobile ? 49 : 78, lineHeight: mobile ? 52 : 83 },
+              {
+                fontSize: mobile ? 49 : 78,
+                lineHeight: mobile ? 52 : 83,
+              },
             ]}
           >
             DIVE{"\n"}INTO THE{"\n"}
@@ -355,7 +358,6 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[
               styles.loginButton,
-
               (loading || esperando) && styles.loginButtonDisabled,
             ]}
             onPress={handleTikTokLogin}
@@ -386,8 +388,8 @@ export default function LoginScreen() {
           )}
 
           <Text style={styles.disclaimer}>
-            Autenticación mediante TikTok Login Kit. Después de autorizar en
-            Safari, vuelve a Expo Go para continuar.
+            Autenticación mediante TikTok Login Kit. Después de autorizar en el
+            navegador, vuelve a la aplicación para continuar.
           </Text>
         </Animated.View>
 
@@ -403,206 +405,169 @@ export default function LoginScreen() {
 
 const C = {
   background: "#03101A",
-
   white: "#F1F7FC",
-
   blue: "#82B5D4",
-
   muted: "#AFC4D2",
-
   border: "#294456",
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.background },
-
-  backgroundImage: { position: "absolute", top: 0, left: 0 },
-
+  screen: {
+    flex: 1,
+    backgroundColor: C.background,
+  },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
   overlay: {
     ...StyleSheet.absoluteFill,
-
     backgroundColor: "rgba(1, 12, 24, 0.68)",
   },
-
-  scroll: { flex: 1 },
-
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     width: "100%",
-
     alignSelf: "center",
-
     maxWidth: 1200,
-
     justifyContent: "space-between",
-
     paddingTop: 60,
-
     paddingBottom: 35,
   },
-
   navbar: {
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "space-between",
   },
-
-  brand: { color: C.white, fontSize: 12, fontWeight: "900", letterSpacing: 2 },
-
+  brand: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
   navLink: {
     color: C.white,
-
     fontSize: 11,
-
     fontWeight: "800",
-
     letterSpacing: 1.5,
   },
-
-  content: { width: "100%", maxWidth: 650, paddingVertical: 60 },
-
+  content: {
+    width: "100%",
+    maxWidth: 650,
+    paddingVertical: 60,
+  },
   eyebrow: {
     color: "#B9D7E9",
-
     fontSize: 10,
-
     fontWeight: "800",
-
     letterSpacing: 2,
-
     marginBottom: 25,
   },
-
-  title: { color: C.white, fontWeight: "900", letterSpacing: -1.5 },
-
-  blueText: { color: C.blue },
-
+  title: {
+    color: C.white,
+    fontWeight: "900",
+    letterSpacing: -1.5,
+  },
+  blueText: {
+    color: C.blue,
+  },
   line: {
     width: 55,
-
     height: 2,
-
     backgroundColor: "#E0F2FF",
-
     marginTop: 30,
-
     marginBottom: 25,
   },
-
   description: {
     color: "#E1ECF3",
-
     fontSize: 15,
-
     lineHeight: 25,
-
     maxWidth: 390,
-
     marginBottom: 30,
   },
-
   profileBox: {
     backgroundColor: "rgba(6, 24, 39, 0.75)",
-
     borderWidth: 1,
-
     borderColor: C.border,
-
     padding: 20,
-
     marginBottom: 25,
   },
-
   profileLabel: {
     color: C.blue,
-
     fontSize: 10,
-
     fontWeight: "800",
-
     letterSpacing: 1.5,
-
     marginBottom: 10,
   },
-
   profileName: {
     color: C.white,
-
     fontSize: 26,
-
     fontWeight: "900",
-
     letterSpacing: 1,
   },
-
-  profileHint: { color: C.muted, fontSize: 12, lineHeight: 20, marginTop: 8 },
-
+  profileHint: {
+    color: C.muted,
+    fontSize: 12,
+    lineHeight: 20,
+    marginTop: 8,
+  },
   loginButton: {
     width: "100%",
-
     maxWidth: 420,
-
     minHeight: 58,
-
     backgroundColor: "#B9D7E9",
-
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     paddingHorizontal: 20,
   },
-
-  loginButtonDisabled: { opacity: 0.65 },
-
+  loginButtonDisabled: {
+    opacity: 0.65,
+  },
   loginButtonText: {
     color: "#03101A",
-
     fontSize: 13,
-
     fontWeight: "900",
-
     letterSpacing: 1,
-
     flexShrink: 1,
   },
-
-  loginArrow: { color: "#03101A", fontSize: 24, fontWeight: "700" },
-
+  loginArrow: {
+    color: "#03101A",
+    fontSize: 24,
+    fontWeight: "700",
+  },
   errorBox: {
     width: "100%",
-
     maxWidth: 420,
-
     marginTop: 15,
-
     padding: 15,
-
     backgroundColor: "rgba(130, 30, 40, 0.25)",
-
     borderWidth: 1,
-
     borderColor: "rgba(255, 160, 170, 0.35)",
   },
-
-  errorText: { color: "#FFB7B7", fontSize: 12, lineHeight: 19 },
-
+  errorText: {
+    color: "#FFB7B7",
+    fontSize: 12,
+    lineHeight: 19,
+  },
   disclaimer: {
     color: C.muted,
-
     fontSize: 11,
-
     lineHeight: 19,
-
     maxWidth: 420,
-
     marginTop: 20,
   },
-
-  footer: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
-
-  micro: { color: "#B4C9D9", fontSize: 9, fontWeight: "800", letterSpacing: 1 },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  micro: {
+    color: "#B4C9D9",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
 });

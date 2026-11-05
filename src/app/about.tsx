@@ -1,10 +1,9 @@
 import { router, useFocusEffect } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useRef, useState } from "react";
+import BannerFijo from "../components/BannerFijo";
 import { abrirPerfil } from "../utils/acceso";
 import { eliminarSesion, verificarSesion } from "../utils/sesion";
-
-import { StatusBar } from "expo-status-bar";
-
-import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Alert,
@@ -486,6 +485,9 @@ export default function AboutScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Banner fijo de AdMob, fuera del ScrollView */}
+      <BannerFijo />
     </View>
   );
 }
